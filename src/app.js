@@ -15,6 +15,8 @@ app.use(morgan('dev'));
 const authRoutes = require('./routes/auth.routes');
 const auctionRoutes = require('./routes/auction.routes');
 const bidRoutes = require('./routes/bid.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const watchlistRoutes = require('./routes/watchlist.routes');
 
 app.get('/', (req, res) => {
   res.json({ message: 'BikeBid API is running' });
@@ -23,6 +25,8 @@ app.get('/', (req, res) => {
 app.use('/api/auctions', auctionRoutes);
 app.use('/api', bidRoutes); // Note: bid routes are defined with /bids and /auctions/...
 app.use('/api/auth', authRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/watchlist', watchlistRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
