@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum AuctionStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELED
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  password      String
+  name          String?
+  role          Role           @default(BUYER)
+  status        UserStatus     @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  auctions      Auction[]      @relation("SellerAuctions")
+  wonAuctions   Auction[]      @relation("WinnerAuctions")
+  bids          Bid[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+}
+
+model Auction {
+  id            Int           @id @default(autoincrement())
+  title         String
+  description   String
+  images        String[]
+  startTime     DateTime
+  endTime       DateTime
+  startingPrice Decimal
+  minIncrement  Decimal
+  reservePrice  Decimal? // Hidden from public
+  buyNowPrice   Decimal?
+  currentPrice  Decimal       @default(0)
+  status        AuctionStatus @default(DRAFT)
+  
+  sellerId      Int
+  seller        User          @relation("SellerAuctions", fields: [sellerId], references: [id])
+  
+  winnerId      Int?
+  winner        User?         @relation("WinnerAuctions", fields: [winnerId], references: [id])
+  
+  bids          Bid[]
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Bid {
+  id        Int      @id @default(autoincrement())
+  amount    Decimal
+  timestamp DateTime @default(now())
+  
+  auctionId Int
+  auction   Auction  @relation(fields: [auctionId], references: [id])
+  
+  bidderId  Int
+  bidder    User     @relation(fields: [bidderId], references: [id])
+
+  @@unique([auctionId, amount]) // prevent duplicate bids at same amount? Or maybe just ensure unique constraint if needed.
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  isRead    Boolean  @default(false)
+  type      String   // OUTBID, AUCTION_WON, etc.
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   Json?
+  
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
