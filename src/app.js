@@ -17,6 +17,7 @@ const auctionRoutes = require('./routes/auction.routes');
 const bidRoutes = require('./routes/bid.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const watchlistRoutes = require('./routes/watchlist.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 app.get('/', (req, res) => {
   res.json({ message: 'BikeBid API is running' });
@@ -27,6 +28,7 @@ app.use('/api', bidRoutes); // Note: bid routes are defined with /bids and /auct
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
