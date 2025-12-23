@@ -201,3 +201,31 @@ exports.cancelAuction = async (req, res) => {
         res.status(500).json({ error: "Cancel failed" });
     }
 };
+
+// Buy Now
+exports.buyNow = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const updatedAuction = await auctionService.buyNow(userId, id);
+
+        // Emit socket event
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('auctionEnded', {
+                auctionId: updatedAuction.id,
+                winnerId: userId,
+                finalPrice: updatedAuction.currentPrice,
+                reason: 'BUY_NOW'
+            });
+        }
+
+        await auctionService.invalidateAuctionCache(id);
+
+        res.json({ message: "Purchase successful", auction: updatedAuction });
+    } catch (error) {
+        console.error('Buy Now error:', error.message);
+        res.status(400).json({ error: error.message });
+    }
+};
