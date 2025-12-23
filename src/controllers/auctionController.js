@@ -101,6 +101,26 @@ exports.listAuctions = async (req, res) => {
     }
 };
 
+// Get Seller's Auctions
+exports.getSellerAuctions = async (req, res) => {
+    try {
+        const sellerId = req.user.id;
+
+        const auctions = await prisma.auction.findMany({
+            where: { sellerId },
+            include: {
+                _count: { select: { bids: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json(auctions);
+    } catch (error) {
+        console.error('Get seller auctions error:', error);
+        res.status(500).json({ error: "Failed to fetch seller auctions" });
+    }
+};
+
 // Get Single Auction
 exports.getAuction = async (req, res) => {
     try {

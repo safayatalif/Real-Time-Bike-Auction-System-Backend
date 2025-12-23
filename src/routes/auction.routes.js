@@ -5,6 +5,7 @@ const { authenticate, authorize } = require('../middlewares/auth');
 
 // Public
 router.get('/', auctionController.listAuctions);
+router.get('/seller', authenticate, authorize(['SELLER', 'ADMIN']), auctionController.getSellerAuctions);
 router.get('/:id', auctionController.getAuction); // Optional: if viewing needs login, add auth
 
 // Protected
