@@ -2,6 +2,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
 const { PrismaClient } = require('@prisma/client');
+const startScheduler = require('./jobs/auctionScheduler');
 
 require('dotenv').config();
 
@@ -36,6 +37,7 @@ async function start() {
 
         server.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
+            startScheduler();
         });
     } catch (error) {
         console.error('Failed to start server:', error);
