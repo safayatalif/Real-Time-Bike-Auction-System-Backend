@@ -14,12 +14,14 @@ app.use(morgan('dev'));
 // Routes
 const authRoutes = require('./routes/auth.routes');
 const auctionRoutes = require('./routes/auction.routes');
+const bidRoutes = require('./routes/bid.routes');
 
 app.get('/', (req, res) => {
   res.json({ message: 'BikeBid API is running' });
 });
-// app.use('/api/users', userRoutes);
+
 app.use('/api/auctions', auctionRoutes);
+app.use('/api', bidRoutes); // Note: bid routes are defined with /bids and /auctions/...
 app.use('/api/auth', authRoutes);
 
 // Error handling
