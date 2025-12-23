@@ -7,6 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums
 enum Role {
   BUYER
   SELLER
@@ -26,21 +27,30 @@ enum AuctionStatus {
   CANCELED
 }
 
+enum BidStatus {
+  ACCEPTED
+  REJECTED
+}
+
+// Models
+
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
-  password      String
+  password      String         // Hashed
   name          String?
   role          Role           @default(BUYER)
   status        UserStatus     @default(ACTIVE)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
+  // Relations
   auctions      Auction[]      @relation("SellerAuctions")
   wonAuctions   Auction[]      @relation("WinnerAuctions")
   bids          Bid[]
   notifications Notification[]
   auditLogs     AuditLog[]
+  watchlist     Watchlist[]
 }
 
 model Auction {
@@ -48,15 +58,20 @@ model Auction {
   title         String
   description   String
   images        String[]
+  
+  // Auction Settings
   startTime     DateTime
   endTime       DateTime
-  startingPrice Decimal
-  minIncrement  Decimal
-  reservePrice  Decimal? // Hidden from public
-  buyNowPrice   Decimal?
-  currentPrice  Decimal       @default(0)
+  startingPrice Decimal       @db.Decimal(10, 2)
+  minIncrement  Decimal       @db.Decimal(10, 2)
+  reservePrice  Decimal?      @db.Decimal(10, 2) // Hidden from public
+  buyNowPrice   Decimal?      @db.Decimal(10, 2)
+  
+  // State
+  currentPrice  Decimal       @default(0) @db.Decimal(10, 2)
   status        AuctionStatus @default(DRAFT)
   
+  // Relations
   sellerId      Int
   seller        User          @relation("SellerAuctions", fields: [sellerId], references: [id])
   
@@ -64,30 +79,50 @@ model Auction {
   winner        User?         @relation("WinnerAuctions", fields: [winnerId], references: [id])
   
   bids          Bid[]
-  
+  watchlist     Watchlist[]
+  auditLogs     AuditLog[]
+
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
 
 model Bid {
+  id              Int       @id @default(autoincrement())
+  amount          Decimal   @db.Decimal(10, 2)
+  status          BidStatus @default(ACCEPTED)
+  rejectionReason String?
+  idempotencyKey  String?   @unique // To prevent duplicate retries
+  
+  timestamp       DateTime  @default(now())
+  
+  auctionId       Int
+  auction         Auction   @relation(fields: [auctionId], references: [id])
+  
+  bidderId        Int
+  bidder          User      @relation(fields: [bidderId], references: [id])
+
+  @@index([auctionId, amount(sort: Desc)]) // Efficiently find highest bid
+}
+
+model Watchlist {
   id        Int      @id @default(autoincrement())
-  amount    Decimal
-  timestamp DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
   
   auctionId Int
   auction   Auction  @relation(fields: [auctionId], references: [id])
   
-  bidderId  Int
-  bidder    User     @relation(fields: [bidderId], references: [id])
+  createdAt DateTime @default(now())
 
-  @@unique([auctionId, amount]) // prevent duplicate bids at same amount? Or maybe just ensure unique constraint if needed.
+  @@unique([userId, auctionId]) // Prevent duplicates
 }
 
 model Notification {
   id        Int      @id @default(autoincrement())
   message   String
+  type      String   // OUTBID, AUCTION_WON, ENDING_SOON, CANCELED
   isRead    Boolean  @default(false)
-  type      String   // OUTBID, AUCTION_WON, etc.
+  metadata  Json?    // Store related auctionId, bidId etc.
   
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
@@ -97,11 +132,16 @@ model Notification {
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  action    String
+  action    String   // BID_PLACED, AUCTION_CREATED, USER_SUSPENDED
+  entity    String   // AUCTION, USER, BID
+  entityId  Int?
   details   Json?
   
   userId    Int?
   user      User?    @relation(fields: [userId], references: [id])
+  
+  auctionId Int?
+  auction   Auction? @relation(fields: [auctionId], references: [id]) 
   
   createdAt DateTime @default(now())
 }
