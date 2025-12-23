@@ -1,32 +1,16 @@
 const http = require('http');
-const { Server } = require('socket.io');
 const app = require('./app');
-const { PrismaClient } = require('@prisma/client');
 const startScheduler = require('./jobs/auctionScheduler');
 
 require('dotenv').config();
 
 const PORT = process.env.PORT || 5000;
-const prisma = new PrismaClient();
+const { initSocket } = require('./config/socket');
 
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Configure this properly in production
-        methods: ["GET", "POST"]
-    }
-});
+const io = initSocket(server);
 
-// Socket.IO connection handler
-io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
-});
-
-// Make io accessible globally or pass it to routes/controllers
+// Make io accessible globally via app (optional, as we have getIO)
 app.set('io', io);
 
 async function start() {

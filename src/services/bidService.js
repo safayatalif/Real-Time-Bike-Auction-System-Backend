@@ -83,6 +83,12 @@ exports.placeBid = async (userId, auctionId, amount, idempotencyKey, req) => {
             throw new Error(`Bid too low. Minimum valid bid is ${minRequired}`);
         }
 
+        // Fetch previous highest bid for outbid notification
+        const previousBid = await tx.bid.findFirst({
+            where: { auctionId: auction.id, status: 'ACCEPTED' },
+            orderBy: { amount: 'desc' }
+        });
+
         // 4. Place Bid
         const newBid = await tx.bid.create({
             data: {
@@ -127,9 +133,21 @@ exports.placeBid = async (userId, auctionId, amount, idempotencyKey, req) => {
             }
         });
 
+        // Notify Previous Bidder (create notification record)
+        if (previousBid && previousBid.bidderId !== userId) {
+            await tx.notification.create({
+                data: {
+                    userId: previousBid.bidderId,
+                    type: 'OUTBID',
+                    message: `You have been outbid on ${auctionObj.title}. New price: ${amount}`,
+                    metadata: { auctionId: auction.id, newPrice: amount }
+                }
+            });
+        }
+
         // 7. Side Effects (Notifications/Socket) - run AFTER tx usually, but for consistency here is fine
         // Return data for controller to emit
-        return { bid: newBid, auction: updatedAuction, extended };
+        return { bid: newBid, auction: updatedAuction, extended, previousBidderId: previousBid ? previousBid.bidderId : null };
     });
 };
 

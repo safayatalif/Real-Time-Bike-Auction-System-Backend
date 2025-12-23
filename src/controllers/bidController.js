@@ -13,21 +13,32 @@ exports.placeBid = async (req, res) => {
         const result = await bidService.placeBid(userId, auctionId, amount, idempotencyKey, req);
 
         // Emit Socket Event
-        const io = req.app.get('io');
+        // Emit Socket Event
+        const { getIO } = require('../config/socket');
+        const io = getIO();
+
         if (io) {
-            io.emit('bidUpdate', {
+            // Broadcast to Auction Room
+            io.to(`auction:${result.auction.id}`).emit('bidPlaced', {
                 auctionId: result.auction.id,
-                currentPrice: result.auction.currentPrice,
-                endTime: result.auction.endTime,
+                newPrice: result.auction.currentPrice,
+                bidderName: req.user.name || 'Anonymous', // Masking could be handled better
                 bidCount: result.auction._count.bids,
-                lastBid: result.bid
+                endTime: result.auction.endTime
             });
 
             if (result.extended) {
-                // Should also be covered by bidUpdate, but explicit event helps UI
-                io.emit('auctionExtended', {
+                io.to(`auction:${result.auction.id}`).emit('auctionExtended', {
                     auctionId: result.auction.id,
                     newEndTime: result.auction.endTime
+                });
+            }
+
+            // Private notification to outbid user
+            if (result.previousBidderId && result.previousBidderId !== userId) {
+                io.to(`user:${result.previousBidderId}`).emit('outbid', {
+                    auctionId: result.auction.id,
+                    newPrice: result.auction.currentPrice
                 });
             }
         }
