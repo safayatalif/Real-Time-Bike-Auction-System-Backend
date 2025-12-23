@@ -16,5 +16,10 @@
   "description": "",
   "devDependencies": {
     "prisma": "^7.2.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "ioredis": "^5.8.2",
+    "jsonwebtoken": "^9.0.3"
   }
 }

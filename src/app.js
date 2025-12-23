@@ -12,13 +12,13 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
+const authRoutes = require('./routes/auth.routes');
 app.get('/', (req, res) => {
   res.json({ message: 'BikeBid API is running' });
 });
-
-// Future routes can be added here
 // app.use('/api/users', userRoutes);
 // app.use('/api/auctions', auctionRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
