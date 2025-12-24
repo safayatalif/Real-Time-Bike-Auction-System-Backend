@@ -1,0 +1,19 @@
+FAIL tests/unit/bidService.test.js
+  ● Test suite failed to run
+
+    Cannot find module '@prisma/client' from 'tests/setup.js'
+
+    [0m[31m[1m>[22m[39m[90m 1 |[39m [36mconst[39m { [33mPrismaClient[39m } [33m=[39m require([32m'@prisma/client'[39m)[33m;[39m
+     [90m   |[39m                          [31m[1m^[22m[39m
+     [90m 2 |[39m [36mconst[39m prisma [33m=[39m [36mnew[39m [33mPrismaClient[39m()[33m;[39m
+     [90m 3 |[39m
+     [90m 4 |[39m beforeAll([36masync[39m () [33m=>[39m {[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)
+      at Object.require (tests/setup.js:1:26)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.496 s
+Ran all test suites matching tests/unit/bidService.test.js.

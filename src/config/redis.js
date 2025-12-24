@@ -1,14 +1,31 @@
-const Redis = require('ioredis');
-require('dotenv').config();
+const EventEmitter = require('events');
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+class RedisMock extends EventEmitter {
+    constructor() {
+        super();
+        this.store = new Map();
+        // Simulate successful connection immediately
+        setTimeout(() => this.emit('connect'), 0);
+    }
 
-redis.on('connect', () => {
-    console.log('Connected to Redis');
-});
+    async get(key) {
+        return this.store.get(key) || null;
+    }
 
-redis.on('error', (err) => {
-    console.error('Redis connection error:', err);
-});
+    async set(key, value, ...args) {
+        this.store.set(key, value);
+        return 'OK';
+    }
 
-module.exports = redis;
+    async del(key) {
+        this.store.delete(key);
+        return 1;
+    }
+
+    async quit() {
+        return 'OK';
+    }
+}
+
+console.log('Using in-memory Redis mock (Redis server not required)');
+module.exports = new RedisMock();

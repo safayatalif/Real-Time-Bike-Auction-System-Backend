@@ -1,0 +1,25 @@
+
+> backend@1.0.0 test:unit
+> cross-env NODE_ENV=test jest tests/unit --runInBand
+
+FAIL tests/unit/bidService.test.js
+  ● Test suite failed to run
+
+    Cannot find module '@prisma/client' from 'tests/unit/bidService.test.js'
+
+    [0m [90m 34 |[39m
+     [90m 35 |[39m [90m// Mock PrismaClient constructor[39m
+    [31m[1m>[22m[39m[90m 36 |[39m jest[33m.[39mmock([32m'@prisma/client'[39m[33m,[39m () [33m=>[39m {
+     [90m    |[39m      [31m[1m^[22m[39m
+     [90m 37 |[39m     [36mreturn[39m {
+     [90m 38 |[39m         [33mPrismaClient[39m[33m:[39m jest[33m.[39mfn(() [33m=>[39m mockPrisma)
+     [90m 39 |[39m     }[33m;[39m[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)
+      at Object.mock (tests/unit/bidService.test.js:36:6)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.126 s
+Ran all test suites matching tests/unit.

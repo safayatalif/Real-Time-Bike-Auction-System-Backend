@@ -4,10 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://postgres:123456@localhost:5432/bike_auction"
 }
 
-// Enums
 enum Role {
   BUYER
   SELLER
@@ -32,19 +31,15 @@ enum BidStatus {
   REJECTED
 }
 
-// Models
-
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
-  password      String         // Hashed
+  password      String
   name          String?
   role          Role           @default(BUYER)
   status        UserStatus     @default(ACTIVE)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-
-  // Relations
   auctions      Auction[]      @relation("SellerAuctions")
   wonAuctions   Auction[]      @relation("WinnerAuctions")
   bids          Bid[]
@@ -58,30 +53,21 @@ model Auction {
   title         String
   description   String
   images        String[]
-  
-  // Auction Settings
   startTime     DateTime
   endTime       DateTime
   startingPrice Decimal       @db.Decimal(10, 2)
   minIncrement  Decimal       @db.Decimal(10, 2)
-  reservePrice  Decimal?      @db.Decimal(10, 2) // Hidden from public
+  reservePrice  Decimal?      @db.Decimal(10, 2)
   buyNowPrice   Decimal?      @db.Decimal(10, 2)
-  
-  // State
   currentPrice  Decimal       @default(0) @db.Decimal(10, 2)
   status        AuctionStatus @default(DRAFT)
-  
-  // Relations
   sellerId      Int
   seller        User          @relation("SellerAuctions", fields: [sellerId], references: [id])
-  
   winnerId      Int?
   winner        User?         @relation("WinnerAuctions", fields: [winnerId], references: [id])
-  
   bids          Bid[]
   watchlist     Watchlist[]
   auditLogs     AuditLog[]
-
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -91,57 +77,45 @@ model Bid {
   amount          Decimal   @db.Decimal(10, 2)
   status          BidStatus @default(ACCEPTED)
   rejectionReason String?
-  idempotencyKey  String?   @unique // To prevent duplicate retries
-  
+  idempotencyKey  String?   @unique
   timestamp       DateTime  @default(now())
-  
   auctionId       Int
   auction         Auction   @relation(fields: [auctionId], references: [id])
-  
   bidderId        Int
   bidder          User      @relation(fields: [bidderId], references: [id])
-
-  @@index([auctionId, amount(sort: Desc)]) // Efficiently find highest bid
+  @@index([auctionId, amount(sort: Desc)])
 }
 
 model Watchlist {
   id        Int      @id @default(autoincrement())
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  
   auctionId Int
   auction   Auction  @relation(fields: [auctionId], references: [id])
-  
   createdAt DateTime @default(now())
-
-  @@unique([userId, auctionId]) // Prevent duplicates
+  @@unique([userId, auctionId])
 }
 
 model Notification {
   id        Int      @id @default(autoincrement())
   message   String
-  type      String   // OUTBID, AUCTION_WON, ENDING_SOON, CANCELED
+  type      String
   isRead    Boolean  @default(false)
-  metadata  Json?    // Store related auctionId, bidId etc.
-  
+  metadata  Json?
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  
   createdAt DateTime @default(now())
 }
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  action    String   // BID_PLACED, AUCTION_CREATED, USER_SUSPENDED
-  entity    String   // AUCTION, USER, BID
+  action    String
+  entity    String
   entityId  Int?
   details   Json?
-  
   userId    Int?
   user      User?    @relation(fields: [userId], references: [id])
-  
   auctionId Int?
-  auction   Auction? @relation(fields: [auctionId], references: [id]) 
-  
+  auction   Auction? @relation(fields: [auctionId], references: [id])
   createdAt DateTime @default(now())
 }

@@ -1,6 +1,28 @@
 const bidService = require('../../src/services/bidService');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+
+// Define mockPrisma BEFORE using it in jest.mock
+const mockPrisma = {
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
+    $transaction: jest.fn((callback) => callback(mockPrisma)),
+    $queryRaw: jest.fn(),
+    auction: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+    },
+    bid: {
+        count: jest.fn(),
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findUnique: jest.fn()
+    },
+    notification: {
+        create: jest.fn()
+    },
+    auditLog: {
+        create: jest.fn()
+    }
+};
 
 // Mock Redis
 jest.mock('../../src/config/redis', () => ({
@@ -10,53 +32,31 @@ jest.mock('../../src/config/redis', () => ({
     on: jest.fn()
 }));
 
+// Mock PrismaClient constructor
 jest.mock('@prisma/client', () => {
-    const mPrisma = {
-        $connect: jest.fn(),
-        $disconnect: jest.fn(),
-        $transaction: jest.fn((callback) => callback(mPrisma)),
-        $queryRaw: jest.fn(),
-        auction: {
-            findUnique: jest.fn(),
-            update: jest.fn(),
-        },
-        bid: {
-            count: jest.fn(),
-            create: jest.fn(),
-            findFirst: jest.fn(),
-            findUnique: jest.fn()
-        },
-        notification: {
-            create: jest.fn()
-        },
-        auditLog: {
-            create: jest.fn()
-        }
+    return {
+        PrismaClient: jest.fn(() => mockPrisma)
     };
-    return { PrismaClient: jest.fn(() => mPrisma) };
 });
 
 describe('BidService Unit Tests', () => {
-    let mockTx;
-
     beforeEach(() => {
         jest.clearAllMocks();
-        mockTx = new PrismaClient();
     });
 
     test('should reject bid if auction is not live', async () => {
-        mockTx.$queryRaw.mockResolvedValue([{ id: 1, status: 'ENDED' }]);
+        mockPrisma.$queryRaw.mockResolvedValue([{ id: 1, status: 'ENDED' }]);
 
         await expect(bidService.placeBid(1, 1, 100, 'key')).rejects.toThrow('Auction is not LIVE');
     });
 
     test('should reject self-bidding', async () => {
-        mockTx.$queryRaw.mockResolvedValue([{ id: 1, status: 'LIVE', startTime: new Date(), endTime: new Date(Date.now() + 10000), sellerId: 1 }]);
+        mockPrisma.$queryRaw.mockResolvedValue([{ id: 1, status: 'LIVE', startTime: new Date(), endTime: new Date(Date.now() + 10000), sellerId: 1 }]);
 
         await expect(bidService.placeBid(1, 1, 100, 'key')).rejects.toThrow('Sellers cannot bid on their own auctions');
     });
 
-    test('should extension auction if bid placed near end (Anti-Sniping)', async () => {
+    test('should extend auction if bid placed near end (Anti-Sniping)', async () => {
         const now = new Date();
         const endTime = new Date(now.getTime() + 60000); // 1 minute left
         const auctionObj = {
@@ -70,15 +70,15 @@ describe('BidService Unit Tests', () => {
             startingPrice: 10
         };
 
-        mockTx.$queryRaw.mockResolvedValue([auctionObj]); // Locked row
-        mockTx.auction.findUnique.mockResolvedValue(auctionObj); // Re-fetch
-        mockTx.bid.count.mockResolvedValue(1);
-        mockTx.bid.create.mockResolvedValue({ id: 100, amount: 150 });
-        mockTx.auction.update.mockResolvedValue({ ...auctionObj, endTime: new Date(endTime.getTime() + 120000) });
+        mockPrisma.$queryRaw.mockResolvedValue([auctionObj]); // Locked row
+        mockPrisma.auction.findUnique.mockResolvedValue(auctionObj); // Re-fetch
+        mockPrisma.bid.count.mockResolvedValue(1);
+        mockPrisma.bid.create.mockResolvedValue({ id: 100, amount: 150 });
+        mockPrisma.auction.update.mockResolvedValue({ ...auctionObj, endTime: new Date(endTime.getTime() + 120000) });
 
         const result = await bidService.placeBid(1, 1, 150, 'key');
 
         expect(result.extended).toBe(true);
-        expect(mockTx.auction.update).toBeCalled();
+        expect(mockPrisma.auction.update).toBeCalled();
     });
 });

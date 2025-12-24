@@ -12,11 +12,10 @@ const initSocket = (server) => {
         }
     });
 
-    // Setup Redis Adapter
-    const pubClient = redis;
-    const subClient = redis.duplicate();
-
-    io.adapter(createAdapter(pubClient, subClient));
+    // Setup Redis Adapter (Commented out for local dev without Redis)
+    // const pubClient = redis;
+    // const subClient = redis.duplicate();
+    // io.adapter(createAdapter(pubClient, subClient));
 
     io.on('connection', (socket) => {
         console.log('Client connected:', socket.id);
