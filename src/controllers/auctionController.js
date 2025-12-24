@@ -6,20 +6,19 @@ const prisma = new PrismaClient();
 // Create Auction
 exports.createAuction = async (req, res) => {
     try {
-        const { title, description, images, startTime, endTime, startingPrice, minIncrement, reservePrice, buyNowPrice } = req.body;
+        const { title, description, images, startTime, endTime, startingPrice, minIncrement, reservePrice, buyNowPrice, status } = req.body;
         const sellerId = req.user.id; // From auth middleware
 
         // Basic date validation
         const start = new Date(startTime);
         const end = new Date(endTime);
 
-        if (start < new Date()) {
-            // Optional: allow creating live auctions immediately, or force scheduled
-            // return res.status(400).json({ error: "Start time must be in the future" });
-        }
-        if (end <= start) {
+        if (end <= start && status !== 'DRAFT') {
             return res.status(400).json({ error: "End time must be after start time" });
         }
+
+        // Determine initial status: use requested status if DRAFT, else auto-calculate
+        let initialStatus = status === 'DRAFT' ? 'DRAFT' : (start <= new Date() ? 'LIVE' : 'SCHEDULED');
 
         const auction = await prisma.auction.create({
             data: {
@@ -33,7 +32,7 @@ exports.createAuction = async (req, res) => {
                 minIncrement,
                 reservePrice,
                 buyNowPrice,
-                status: start <= new Date() ? 'LIVE' : 'SCHEDULED', // Auto-live if time matches
+                status: initialStatus,
                 sellerId
             }
         });
@@ -172,7 +171,7 @@ exports.getAuction = async (req, res) => {
 exports.updateAuction = async (req, res) => {
     try {
         const { id } = req.params;
-        const data = req.body;
+        const { title, description, images, startTime, endTime, startingPrice, minIncrement, reservePrice, buyNowPrice, status } = req.body;
         const userId = req.user.id;
 
         const auction = await prisma.auction.findUnique({ where: { id: parseInt(id) } });
@@ -186,10 +185,30 @@ exports.updateAuction = async (req, res) => {
             return res.status(400).json({ error: "Cannot edit an auction that is Live or Ended" });
         }
 
+        // Determine status and parse dates
+        const start = startTime ? new Date(startTime) : new Date(auction.startTime);
+        const end = endTime ? new Date(endTime) : new Date(auction.endTime);
+
+        if (end <= start && status !== 'DRAFT') {
+            return res.status(400).json({ error: "End time must be after start time" });
+        }
+
+        let finalStatus = status === 'DRAFT' ? 'DRAFT' : (start <= new Date() ? 'LIVE' : 'SCHEDULED');
+
         const updated = await prisma.auction.update({
             where: { id: parseInt(id) },
             data: {
-                ...data,
+                title: title !== undefined ? title : auction.title,
+                description: description !== undefined ? description : auction.description,
+                images: images !== undefined ? images : auction.images,
+                startTime: start,
+                endTime: end,
+                startingPrice: startingPrice !== undefined ? startingPrice : auction.startingPrice,
+                currentPrice: startingPrice !== undefined ? startingPrice : auction.currentPrice,
+                minIncrement: minIncrement !== undefined ? minIncrement : auction.minIncrement,
+                reservePrice: reservePrice !== undefined ? reservePrice : auction.reservePrice,
+                buyNowPrice: buyNowPrice !== undefined ? buyNowPrice : auction.buyNowPrice,
+                status: finalStatus,
                 updatedAt: new Date()
             }
         });

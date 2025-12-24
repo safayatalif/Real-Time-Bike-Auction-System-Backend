@@ -11,7 +11,7 @@ router.get('/:id', auctionController.getAuction);
 
 // Protected
 router.post('/', authenticate, authorize(['SELLER', 'ADMIN']), auctionController.createAuction);
-router.put('/:id', authenticate, authorize(['SELLER', 'ADMIN']), auctionController.updateAuction);
+router.patch('/:id', authenticate, authorize(['SELLER', 'ADMIN']), auctionController.updateAuction);
 router.patch('/:id/cancel', authenticate, authorize(['SELLER', 'ADMIN']), auctionController.cancelAuction);
 router.post('/:id/buy-now', authenticate, authorize(['BUYER']), auctionController.buyNow);
 
