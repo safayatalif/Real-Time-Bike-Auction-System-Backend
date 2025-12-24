@@ -1,9 +1,9 @@
 node_modules
 # Keep environment variables out of version control
 .env
-# IMPLEMENTATION.md
-# ADMIN.md
-# NOTIFICATIONS.md
+IMPLEMENTATION.md
+ADMIN.md
+NOTIFICATIONS.md
 
 
 /generated/prisma
