@@ -292,7 +292,7 @@ MIT
 
 ## 🔗 Related Repositories
 
-- Frontend: [Coming Soon]
+- Frontend: [https://github.com/safayatalif/Real-Time-Bike-Auction-System-Frontend]
 
 ---
 
