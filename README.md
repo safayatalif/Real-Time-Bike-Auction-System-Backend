@@ -282,10 +282,6 @@ Automated transitions run every minute via cron job.
 - Check server logs for "Running auction state job..."
 - Verify cron expression in `src/jobs/auctionScheduler.js`
 
-## 📝 License
-
-MIT
-
 ## 👥 Contributors
 
 - Safayat Hossen Alif (@safayatalif)
